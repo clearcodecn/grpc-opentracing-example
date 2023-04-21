@@ -1,0 +1,44 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "go-opentracing-example/pb";
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) ;
+}
+
+message Order {
+  int64 id = 1;
+  enum Status {
+    UNKNOWN = 0 ;
+    Created = 1; // 已创建
+    Paying = 2; // 正在支付
+    Payed = 3;  // 支付完成
+    Cancel = 4;  // 已取消
+    // ... todo
+  }
+  int64 uid = 2;
+  double price = 3;
+  double discountAmount = 4;
+  Status status = 5; // 状态
+  int64 createdAt = 6; // 创建时间.
+}
+
+message OrderGood {
+  int64 id = 1;
+  int64 goodId = 2;
+  int64 orderId = 3;
+  int64 goodName = 4;
+  //..
+  double price = 5; // 价格
+  int64 number = 6;
+}
+
+message CreateOrderRequest {
+  repeated int64 cartIds = 1; // 购物车 id
+  int64 couponId = 2; // 优惠券id
+}
+
+message CreateOrderResponse {
+  int64 orderId = 1;
+}

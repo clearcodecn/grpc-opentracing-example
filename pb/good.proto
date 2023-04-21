@@ -1,0 +1,37 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "go-opentracing-example/pb";
+
+service GoodService {
+  rpc GetGoodsByID(GetGoodsByIDsRequest) returns (GetGoodsByIDsResponse) ;
+  rpc UpdateGoodsStoke(UpdateGoodsStokeRequest) returns (UpdateGoodsStokeResponse) ;
+}
+
+message Good {
+  int64 id = 1;
+  string name = 2;
+  int64 stoke = 3; // 库存.
+  double price = 4;
+}
+
+message GetGoodsByIDsRequest {
+  repeated int64 ids = 1;
+}
+
+message GetGoodsByIDsResponse {
+  repeated Good goods = 1;
+}
+
+message stokeRequest {
+  int64 goodId = 1; // 商品id
+  int64 stoke = 2; // 库存数量
+}
+
+message UpdateGoodsStokeRequest{
+  repeated stokeRequest requests = 1;
+}
+
+message UpdateGoodsStokeResponse {
+
+}
