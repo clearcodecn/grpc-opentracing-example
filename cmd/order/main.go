@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/opentracing/opentracing-go"
 	"go-opentracing-example/pb"
 	"go-opentracing-example/pkg/event"
@@ -22,24 +23,28 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 
 	s := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-			ctx = requestid.NewWithContext(ctx, "")
-			resp, err = handler(ctx, req)
+		grpc.ChainUnaryInterceptor(
+			func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+				ctx = requestid.NewWithContext(ctx, "")
+				resp, err = handler(ctx, req)
 
-			return resp, err
-		},
-			tracing.Middleware(),
+				return resp, err
+			},
+			grpc_opentracing.UnaryServerInterceptor(),
 		),
 	)
 
 	goodsCC, err := grpc.Dial(
 		"localhost:5001",
 		grpc.WithInsecure(),
-		grpc.WithChainUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-			id := requestid.RequestID(ctx)
-			ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", id)
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}),
+		grpc.WithChainUnaryInterceptor(
+			func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+				id := requestid.RequestID(ctx)
+				ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", id)
+				return invoker(ctx, method, req, reply, cc, opts...)
+			},
+			grpc_opentracing.UnaryClientInterceptor(),
+		),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +52,18 @@ func main() {
 
 	goodClient := pb.NewGoodServiceClient(goodsCC)
 
-	cartCC, err := grpc.Dial("localhost:5002", grpc.WithInsecure())
+	cartCC, err := grpc.Dial(
+		"localhost:5002",
+		grpc.WithInsecure(),
+		grpc.WithChainUnaryInterceptor(
+			func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+				id := requestid.RequestID(ctx)
+				ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", id)
+				return invoker(ctx, method, req, reply, cc, opts...)
+			},
+			grpc_opentracing.UnaryClientInterceptor(),
+		),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

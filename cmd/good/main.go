@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	"github.com/opentracing/opentracing-go"
 	"go-opentracing-example/pb"
 	"go-opentracing-example/pkg/logger"
 	"go-opentracing-example/pkg/requestid"
@@ -12,10 +14,15 @@ import (
 )
 
 func main() {
+
+	tracer, closer := tracing.Init("goodService")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
 	s := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			requestid.WithRequestID(),
-			tracing.Middleware(),
+			grpc_opentracing.UnaryServerInterceptor(),
 		),
 	)
 
